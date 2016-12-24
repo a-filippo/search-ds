@@ -6,8 +6,28 @@ import java.util.List;
 //TODO: write code here
 public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
 
+    private enum Color {RED, BLACK}
+
+    private class Node {
+        private Node left;
+        private Node right;
+        private E value;
+        private Color color;
+        private int size;
+
+        public Node(E value, Color color, int size) {
+            this.value = value;
+            this.color = color;
+            this.size = size;
+        }
+    }
+
+    private Node root;
+
     private int size;
     private final Comparator<E> comparator;
+
+
 
     public RedBlackTree() {
         this.comparator = null;
@@ -34,12 +54,20 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
 
     @Override
     public int size() {
-        return 0;
+        return size(root);
+    }
+
+    private int size(Node node){
+        if (node == null){
+            return 0;
+        } else {
+            return node.size;
+        }
     }
 
     @Override
     public boolean isEmpty() {
-        return false;
+        return root == null;
     }
 
     @Override
