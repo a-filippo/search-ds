@@ -7,6 +7,12 @@ public class RBTest {
         RedBlackTree<Integer> tree = new RedBlackTree<>();
         Scanner in = new Scanner(System.in);
 
+        /*for (int i = 0; i < 6000; i++){
+            if (!tree.add(i)){
+                System.out.println("error");
+            }
+        }*/
+
         while (true){
             String line = in.nextLine();
             String[] lines = line.split("\\s+");

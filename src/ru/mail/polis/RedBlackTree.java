@@ -9,23 +9,24 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
     private enum Color {RED, BLACK}
 
     private class Node {
-        private Node left;
-        private Node right;
+        private Node left = null;
+        private Node right = null;
+        private Node parent = null;
         private E value;
         private Color color;
-        private int size;
 
-        public Node(E value, Color color, int size) {
+        private Node(E value, Node parent, Color color) {
             this.value = value;
+            this.parent = parent;
             this.color = color;
-            this.size = size;
         }
     }
 
     private Node root;
 
-    private final Comparator<E> comparator;
+    private int size = 0;
 
+    private final Comparator<E> comparator;
 
 
     public RedBlackTree() {
@@ -71,15 +72,7 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
 
     @Override
     public int size() {
-        return size(root);
-    }
-
-    private int size(Node node){
-        if (node == null){
-            return 0;
-        } else {
-            return node.size;
-        }
+        return size;
     }
 
     @Override
@@ -115,185 +108,145 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
         if (value == null){
             throw new NullPointerException();
         }
-        booleanAdd = true;
-        root = add(root, value);
-        root.color = Color.BLACK;
-        return booleanAdd;
-    }
 
-    private boolean booleanAdd;
-
-    private Node add(Node node, E value){
-        if (node == null){
-            return new Node(value, Color.RED, 1);
-        }
-
-        int cmp = compare(value, node.value);
-        if (cmp < 0){
-            node.left = add(node.left, value);
-        } else if (cmp > 0){
-            node.right = add(node.right, value);
+        Node temp = root;
+        Node node;
+        if (root == null) {
+            root = new Node(value, null, Color.BLACK);
+            size++;
         } else {
-            booleanAdd = false;
+            while (true) {
+                int cmp = compare(value, temp.value);
+                if (cmp < 0) {
+                    if (temp.left == null) {
+                        temp.left = new Node(value, temp, Color.RED);
+                        node = temp.left;
+                        size++;
+                        break;
+                    } else {
+                        temp = temp.left;
+                    }
+                } else if (cmp > 0) {
+                    if (temp.right == null) {
+                        temp.right = new Node(value, temp, Color.RED);
+                        node = temp.right;
+                        size++;
+                        break;
+                    } else {
+                        temp = temp.right;
+                    }
+                } else {
+                    return false;
+                }
+            }
+            fixTree(node);
         }
-
-        if (isRed(node.right) && !isRed(node.left)){
-            node = rotateLeft(node);
-        }
-        if (isRed(node.left) && isRed(node.left.left)){
-            node = rotateRight(node);
-        }
-        if (isRed(node.left) && isRed(node.right)){
-            flipColors(node);
-        }
-        node.size = normalSize(node);
-
-        return node;
+        return true;
     }
+
+    private void fixTree(Node node) {
+        while (node.parent != null && node.parent.color == Color.RED) {
+            Node uncle;
+            if (node.parent == grandparent(node).left) {
+                uncle = grandparent(node).right;
+                if (uncle != null && uncle.color == Color.RED) {
+                    node.parent.color = Color.BLACK;
+                    uncle.color = Color.BLACK;
+                    grandparent(node).color = Color.RED;
+                    node = grandparent(node);
+                    continue;
+                }
+                if (node == node.parent.right) {
+                    node = node.parent;
+                    rotateLeft(node);
+                }
+                node.parent.color = Color.BLACK;
+                grandparent(node).color = Color.RED;
+                rotateRight(grandparent(node));
+            } else {
+                uncle = grandparent(node).left;
+                if (uncle != null && uncle.color == Color.RED) {
+                    node.parent.color = Color.BLACK;
+                    uncle.color = Color.BLACK;
+                    grandparent(node).color = Color.RED;
+                    node = grandparent(node);
+                    continue;
+                }
+                if (node == node.parent.left){
+                    node = node.parent;
+                    rotateRight(node);
+                }
+                node.parent.color = Color.BLACK;
+                grandparent(node).color = Color.RED;
+                rotateLeft(grandparent(node));
+            }
+        }
+        root.color = Color.BLACK;
+    }
+
 
     @Override
     public boolean remove(E value){
-        if (value == null){
-            throw new NullPointerException();
-        }
-        if (isEmpty()){
-            return false;
-        }
-        booleanRemove = false;
-        if (!isRed(root.left) && !isRed(root.right)){
-            root.color = Color.RED;
-        }
-
-        root = remove(root, value);
-        if (!isEmpty()){
-            root.color = Color.BLACK;
-        }
-        return booleanRemove;
+        return false;
     }
 
-    private boolean booleanRemove;
+    private Node grandparent(Node node){
+        return (node != null && node.parent != null) ? node.parent.parent : null;
+    }
 
-    private Node remove(Node node, E value){
-        if (node == null){
-            return null;
-        }
-        if (compare(value, node.value) < 0)  {
-            if (node.left != null && !isRed(node.left) && !isRed(node.left.left)) {
-                node = moveRedLeft(node);
-            }
-            node.left = remove(node.left, value);
-        } else {
-            if (isRed(node.left)) {
-                node = rotateRight(node);
-            }
-            if (compare(value, node.value) == 0 && (node.right == null)) {
-                booleanRemove = true;
-                return null;
-            }
-            if (node.right != null && !isRed(node.right) && !isRed(node.right.left)) {
-                node = moveRedRight(node);
-            }
-            if (compare(value, node.value) == 0) {
-                Node x = min(node.right);
-                node.value = x.value;
-                node.right = deleteMin(node.right);
-                booleanRemove = true;
+    void rotateLeft(Node node) {
+        if (node.parent != null) {
+            if (node == node.parent.left) {
+                node.parent.left = node.right;
             } else {
-                node.right = remove(node.right, value);
+                node.parent.right = node.right;
             }
-        }
-        return balance(node);
-    }
-
-    private boolean isRed(Node node) {
-        return node != null && node.color == Color.RED;
-    }
-
-    private Node rotateRight(Node node) {
-        Node x = node.left;
-        node.left = x.right;
-        x.right = node;
-        x.color = x.right.color;
-        x.right.color = Color.RED;
-        x.size = node.size;
-        node.size = normalSize(node);
-        return x;
-    }
-
-    private Node rotateLeft(Node node) {
-        Node x = node.right;
-        node.right = x.left;
-        x.left = node;
-        x.color = x.left.color;
-        x.left.color = Color.RED;
-        x.size = node.size;
-        node.size = normalSize(node);
-        return x;
-    }
-
-    private void flipColors(Node node) {
-        node.color = flipColor(node.color);
-        node.left.color = flipColor(node.left.color);
-        node.right.color = flipColor(node.right.color);
-    }
-
-    private Color flipColor(Color color){
-        if (color == Color.RED){
-            return Color.BLACK;
+            node.right.parent = node.parent;
+            node.parent = node.right;
+            if (node.right.left != null) {
+                node.right.left.parent = node;
+            }
+            node.right = node.right.left;
+            node.parent.left = node;
         } else {
-            return Color.RED;
+            Node right = root.right;
+            root.right = right.left;
+            if (right.left != null){
+                right.left.parent = root;
+            }
+            root.parent = right;
+            right.left = root;
+            right.parent = null;
+            root = right;
         }
     }
 
-    private Node moveRedLeft(Node node) {
-        flipColors(node);
-        if (isRed(node.right.left)) {
-            node.right = rotateRight(node.right);
-            node = rotateLeft(node);
-            flipColors(node);
-        }
-        return node;
-    }
+    void rotateRight(Node node) {
+        if (node.parent != null) {
+            if (node == node.parent.left) {
+                node.parent.left = node.left;
+            } else {
+                node.parent.right = node.left;
+            }
 
-    private Node moveRedRight(Node node) {
-        flipColors(node);
-        if (isRed(node.left.left)) {
-            node = rotateRight(node);
-            flipColors(node);
+            node.left.parent = node.parent;
+            node.parent = node.left;
+            if (node.left.right != null) {
+                node.left.right.parent = node;
+            }
+            node.left = node.left.right;
+            node.parent.right = node;
+        } else {
+            Node left = root.left;
+            root.left = root.left.right;
+            if (left.right != null) {
+                left.right.parent = root;
+            }
+            root.parent = left;
+            left.right = root;
+            left.parent = null;
+            root = left;
         }
-        return node;
-    }
-
-    private Node balance(Node node) {
-        if (isRed(node.right)){
-            node = rotateLeft(node);
-        }
-        if (isRed(node.left) && isRed(node.left.left)){
-            node = rotateRight(node);
-        }
-        if (isRed(node.left) && isRed(node.right)){
-            flipColors(node);
-        }
-
-        node.size = normalSize(node);
-        return node;
-    }
-
-    private int normalSize(Node node){
-        return (int) Math.min((long) (size(node.left) + size(node.right) + 1), Integer.MAX_VALUE);
-    }
-
-    private Node deleteMin(Node node) {
-        if (node.left == null) {
-            return null;
-        }
-
-        if (!isRed(node.left) && !isRed(node.left.left)) {
-            node = moveRedLeft(node);
-        }
-
-        node.left = deleteMin(node.left);
-        return balance(node);
     }
 
     private Node min(Node node) {
