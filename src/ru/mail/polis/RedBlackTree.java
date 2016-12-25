@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-//TODO: write code here
 public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
 
     private enum Color {RED, BLACK}
@@ -98,7 +97,7 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
 
     private boolean contains(Node node, E value) {
         while (node != null) {
-            int cmp = value.compareTo(node.value);
+            int cmp = compare(value, node.value);
             if (cmp < 0){
                 node = node.left;
             } else if (cmp > 0){
@@ -129,7 +128,7 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
             return new Node(value, Color.RED, 1);
         }
 
-        int cmp = value.compareTo(node.value);
+        int cmp = compare(value, node.value);
         if (cmp < 0){
             node.left = add(node.left, value);
         } else if (cmp > 0){
@@ -147,7 +146,7 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
         if (isRed(node.left) && isRed(node.right)){
             flipColors(node);
         }
-        node.size = size(node.left) + size(node.right) + 1;
+        node.size = normalSize(node);
 
         return node;
     }
@@ -156,6 +155,9 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
     public boolean remove(E value){
         if (value == null){
             throw new NullPointerException();
+        }
+        if (isEmpty()){
+            return false;
         }
         booleanRemove = false;
         if (!isRed(root.left) && !isRed(root.right)){
@@ -175,8 +177,8 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
         if (node == null){
             return null;
         }
-        if (value.compareTo(node.value) < 0)  {
-            if (!isRed(node.left) && !isRed(node.left.left)) {
+        if (compare(value, node.value) < 0)  {
+            if (node.left != null && !isRed(node.left) && !isRed(node.left.left)) {
                 node = moveRedLeft(node);
             }
             node.left = remove(node.left, value);
@@ -184,14 +186,14 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
             if (isRed(node.left)) {
                 node = rotateRight(node);
             }
-            if (value.compareTo(node.value) == 0 && (node.right == null)) {
+            if (compare(value, node.value) == 0 && (node.right == null)) {
                 booleanRemove = true;
                 return null;
             }
             if (node.right != null && !isRed(node.right) && !isRed(node.right.left)) {
                 node = moveRedRight(node);
             }
-            if (value.compareTo(node.value) == 0) {
+            if (compare(value, node.value) == 0) {
                 Node x = min(node.right);
                 node.value = x.value;
                 node.right = deleteMin(node.right);
@@ -214,7 +216,7 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
         x.color = x.right.color;
         x.right.color = Color.RED;
         x.size = node.size;
-        node.size = size(node.left) + size(node.right) + 1;
+        node.size = normalSize(node);
         return x;
     }
 
@@ -225,7 +227,7 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
         x.color = x.left.color;
         x.left.color = Color.RED;
         x.size = node.size;
-        node.size = size(node.left) + size(node.right) + 1;
+        node.size = normalSize(node);
         return x;
     }
 
@@ -273,8 +275,12 @@ public class RedBlackTree<E extends Comparable<E>> implements ISortedSet<E> {
             flipColors(node);
         }
 
-        node.size = size(node.left) + size(node.right) + 1;
+        node.size = normalSize(node);
         return node;
+    }
+
+    private int normalSize(Node node){
+        return (int) Math.min((long) (size(node.left) + size(node.right) + 1), Integer.MAX_VALUE);
     }
 
     private Node deleteMin(Node node) {

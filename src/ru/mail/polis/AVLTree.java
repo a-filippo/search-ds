@@ -4,7 +4,6 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 
-//TODO: write code here
 public class AVLTree<E extends Comparable<E>> implements ISortedSet<E> {
 
     private class Node{
@@ -19,7 +18,7 @@ public class AVLTree<E extends Comparable<E>> implements ISortedSet<E> {
     }
 
     private Node root;
-    private int size;
+
     private final Comparator<E> comparator;
 
     public AVLTree() {
@@ -75,10 +74,7 @@ public class AVLTree<E extends Comparable<E>> implements ISortedSet<E> {
         if (node == null){
             return 0;
         } else {
-            int size = 1;
-            size += size(node.left);
-            size += size(node.right);
-            return size;
+            return (int) Math.min((long) (1 + size(node.left)) + size(node.right), Integer.MAX_VALUE);
         }
     }
 
@@ -99,9 +95,9 @@ public class AVLTree<E extends Comparable<E>> implements ISortedSet<E> {
         boolean found = false;
         while ((node != null) && !found){
             E nodeval = node.value;
-            if (value.compareTo(nodeval) < 0){
+            if (compare(value, nodeval) < 0){
                 node = node.left;
-            } else if (value.compareTo(nodeval) > 0){
+            } else if (compare(value, nodeval) > 0){
                 node = node.right;
             } else {
                 found = true;
@@ -124,92 +120,20 @@ public class AVLTree<E extends Comparable<E>> implements ISortedSet<E> {
 
     private boolean booleanAdd;
 
-    /*private Node add(Node node, E value){
+    private Node add(Node node, E value) {
         if (node == null){
             return new Node(value);
         }
-        int cmp = value.compareTo(node.value);
+        int cmp = compare(value, node.value);
         if (cmp < 0) {
             node.left = add(node.left, value);
         } else if (cmp > 0) {
             node.right = add(node.right, value);
         } else {
-            node.value = value;
-            return node;
+            booleanAdd = false;
         }
         node.height = 1 + Math.max(height(node.left), height(node.right));
         return balance(node);
-    }*/
-    private Node add(Node node, E value){
-        if (node == null){
-            node = new Node(value);
-        } else if (value.compareTo(node.value) < 0){
-            node.left = add(node.left, value);
-            if (height(node.left) - height(node.right) == 2){
-                if (value.compareTo(node.left.value) < 0){
-                    node = littleLeftRotate(node);
-                } else {
-                    node = bigLeftRotate(node);
-                }
-            }
-        } else if (value.compareTo(node.value) > 0){
-            node.right = add(node.right, value);
-            if (height(node.right) - height(node.left) == 2){
-                if (value.compareTo(node.right.value) > 0){
-                    node = littleRightRotate(node);
-                } else {
-                    node = bigRightRotate(node);
-                }
-            }
-        } else {
-            booleanAdd = false;
-        }
-        node.height = Math.max(height(node.left), height(node.right)) + 1;
-        return node;
-    }
-
-    private Node littleLeftRotate(Node node1){
-        Node node2 = node1.left;
-        node1.left = node2.right;
-        node2.right = node1;
-        node1.height = Math.max(height(node1.left), height(node1.right)) + 1;
-        node2.height = Math.max(height(node2.left), node1.height) + 1;
-        return node2;
-    }
-
-    private Node littleRightRotate(Node node1){
-        Node node2 = node1.right;
-        node1.right = node2.left;
-        node2.left = node1;
-        node1.height = Math.max(height(node1.left), height(node1.right)) + 1;
-        node2.height = Math.max(height(node2.right), node1.height) + 1;
-        return node2;
-    }
-
-    private Node bigLeftRotate(Node node){
-        node.left = littleRightRotate(node.left);
-        return littleLeftRotate(node);
-    }
-
-    private Node bigRightRotate(Node node){
-        node.right = littleLeftRotate(node.right);
-        return littleRightRotate(node);
-    }
-
-    private Node min(Node node) {
-        if (node.left == null){
-            return node;
-        } else {
-            return min(node.left);
-        }
-    }
-
-    private Node max(Node node) {
-        if (node.right == null){
-            return node;
-        } else {
-            return max(node.right);
-        }
     }
 
     @Override
@@ -218,123 +142,92 @@ public class AVLTree<E extends Comparable<E>> implements ISortedSet<E> {
             throw new NullPointerException();
         }
         booleanRemove = false;
-        remove(root, value);
+        root = remove(root, value);
         return booleanRemove;
     }
 
     private boolean booleanRemove;
 
-    /*private Node remove(Node node, E value) {
-        int cmp = value.compareTo(node.value);
+    private Node remove(Node node, E value) {
+        if (node == null){
+            return null;
+        }
+        int cmp = compare(value, node.value);
         if (cmp < 0) {
             node.left = remove(node.left, value);
         } else if (cmp > 0) {
             node.right = remove(node.right, value);
         } else {
+            booleanRemove = true;
             if (node.left == null) {
                 return node.right;
             } else if (node.right == null) {
                 return node.left;
             } else {
-                Node y = node;
-                node = min(y.right);
-                node.right = deleteMin(y.right);
-                node.left = y.left;
+                Node node2 = node;
+                node = min(node2.right);
+                node.right = deleteMin(node2.right);
+                node.left = node2.left;
             }
         }
         node.height = 1 + Math.max(height(node.left), height(node.right));
         return balance(node);
     }
 
+
+    private Node balance(Node node) {
+        if (balanceFactor(node) < -1) {
+            if (balanceFactor(node.right) > 0) {
+                node.right = rotateRight(node.right);
+            }
+            node = rotateLeft(node);
+        } else if (balanceFactor(node) > 1) {
+            if (balanceFactor(node.left) < 0) {
+                node.left = rotateLeft(node.left);
+            }
+            node = rotateRight(node);
+        }
+        return node;
+    }
+
+    private int balanceFactor(Node node) {
+        return height(node.left) - height(node.right);
+    }
+
+    private Node rotateRight(Node node) {
+        Node node2 = node.left;
+        node.left = node2.right;
+        node2.right = node;
+        node.height = 1 + Math.max(height(node.left), height(node.right));
+        node2.height = 1 + Math.max(height(node2.left), height(node2.right));
+        return node2;
+    }
+
+    private Node rotateLeft(Node node) {
+        Node node2 = node.right;
+        node.right = node2.left;
+        node2.left = node;
+        node.height = 1 + Math.max(height(node.left), height(node.right));
+        node2.height = 1 + Math.max(height(node2.left), height(node2.right));
+        return node2;
+    }
+
     private Node deleteMin(Node node) {
-        if (node.left == null){
+        if (node.left == null) {
             return node.right;
         }
         node.left = deleteMin(node.left);
         node.height = 1 + Math.max(height(node.left), height(node.right));
         return balance(node);
-    }*/
-
-    public Node remove(Node node, E value) {
-        if (node == null){
-            return null;
-        }
-        if (value.compareTo(node.value) < 0) {
-            node.left = remove(node.left, value);
-            int l = node.left != null ? node.left.height : 0;
-
-            if((node.right != null) && (node.right.height - l >= 2)) {
-                int rightHeight = node.right.right != null ? node.right.right.height : 0;
-                int leftHeight = node.right.left != null ? node.right.left.height : 0;
-
-                if (rightHeight >= leftHeight) {
-                    node = littleLeftRotate(node);
-                } else {
-                    node = bigRightRotate(node);
-                }
-            }
-        } else if (value.compareTo(node.value) > 0) {
-            node.right = remove(node.right, value);
-            int r = node.right != null ? node.right.height : 0;
-            if ((node.left != null) && (node.left.height - r >= 2)) {
-                int leftHeight = node.left.left != null ? node.left.left.height : 0;
-                int rightHeight = node.left.right != null ? node.left.right.height : 0;
-                if (leftHeight >= rightHeight) {
-                    node = littleRightRotate(node);
-                } else {
-                    node = bigLeftRotate(node);
-                }
-            }
-        } else {
-            if (node.left != null) {
-                node.value = max(node.left).value;
-                remove(node.left, node.value);
-
-                if ((node.right != null) && (node.right.height - node.left.height >= 2)) {
-                    int rightHeight = node.right.right != null ? node.right.right.height : 0;
-                    int leftHeight = node.right.left != null ? node.right.left.height : 0;
-
-                    if (rightHeight >= leftHeight) {
-                        node = littleLeftRotate(node);
-                    } else {
-                        node = bigRightRotate(node);
-                    }
-                }
-            } else {
-                node = node.right;
-            }
-
-            booleanRemove = true;
-        }
-
-        if (node != null) {
-            int leftHeight = node.left != null ? node.left.height : 0;
-            int rightHeight = node.right!= null ? node.right.height : 0;
-            node.height = Math.max(leftHeight, rightHeight) + 1;
-        }
-
-        return node;
     }
 
-    /*private int balanceFactor(Node node) {
-        return height(node.left) - height(node.right);
+    private Node min(Node node) {
+        return (node.left == null) ? node : min(node.left);
     }
 
-    private Node balance(Node node) {
-        if (balanceFactor(node) < -1) {
-            if (balanceFactor(node.right) > 0) {
-                node.right = rightRotate(node.right);
-            }
-            node = leftRotate(node);
-        }
-        else if (balanceFactor(node) > 1) {
-            if (balanceFactor(node.left) < 0) {
-                node.left = leftRotate(node.left);
-            }
-            node = rightRotate(node);
-        }
-        return node;
-    }*/
+    private Node max(Node node) {
+        return (node.right == null) ? node : max(node.right);
+    }
 
     private int compare(E v1, E v2) {
         return comparator == null ? v1.compareTo(v2) : comparator.compare(v1, v2);
